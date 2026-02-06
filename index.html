@@ -17,8 +17,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script type="text/javascript"
@@ -365,7 +366,32 @@
         </nav>
 <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
     
-    <div id="loggedOutView">
+
+
+        <div id="loggedOutView">
+        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+            <div style="margin-bottom:10px; font-weight:bold; color:var(--primary); font-size:0.9rem;">
+                <i class="fas fa-envelope"></i> Akun Email
+            </div>
+            
+            <input type="email" id="authEmail" placeholder="Email..." style="margin-bottom:8px; font-size:0.9rem;">
+            <input type="password" id="authPass" placeholder="Password..." style="margin-bottom:12px; font-size:0.9rem;">
+            
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary btn-sm" style="flex:1; justify-content:center;" onclick="handleEmailLogin()">
+                    Masuk
+                </button>
+                <button class="btn btn-outline btn-sm" style="flex:1; justify-content:center;" onclick="handleEmailRegister()">
+                    Daftar
+                </button>
+            </div>
+        </div>
+
+        <div style="text-align:center; margin-bottom:15px; font-size:0.75rem; color:var(--text-muted); position:relative;">
+            <span style="background:var(--bg-card); padding:0 10px; position:relative; z-index:1;">ATAU</span>
+            <div style="border-top:1px solid var(--border); position:absolute; top:50%; width:100%; z-index:0;"></div>
+        </div>
+        
         <button class="btn btn-primary" style="width:100%; justify-content:center; background-color: #DB4437; border:none;" onclick="loginWithGoogle()">
             <i class="fab fa-google"></i> <span>Masuk dengan Google</span>
         </button>
@@ -1195,6 +1221,72 @@
         }
     }
 
+
+    // --- 1.b FUNGSI LOGIN & DAFTAR EMAIL ---
+
+    function getAuthInput() {
+        const email = document.getElementById('authEmail').value;
+        const pass = document.getElementById('authPass').value;
+        if (!email || !pass) {
+            Swal.fire('Gagal', 'Mohon isi Email dan Password', 'warning');
+            return null;
+        }
+        return { email, pass };
+    }
+
+    function handleEmailRegister() {
+        const cred = getAuthInput();
+        if (!cred) return;
+
+        if (cred.pass.length < 6) {
+            return Swal.fire('Password Lemah', 'Password minimal 6 karakter', 'warning');
+        }
+
+        Swal.fire({ title: 'Mendaftar...', didOpen: () => Swal.showLoading() });
+
+        auth.createUserWithEmailAndPassword(cred.email, cred.pass)
+            .then((userCredential) => {
+                // Set nama default dari bagian depan email
+                const defaultName = cred.email.split('@')[0];
+                return userCredential.user.updateProfile({
+                    displayName: defaultName
+                });
+            })
+            .then(() => {
+                Swal.fire('Berhasil!', 'Akun berhasil dibuat. Anda otomatis login.', 'success');
+                // Form akan otomatis hilang karena onAuthStateChanged di initAuthListener akan jalan
+            })
+            .catch((error) => {
+                let msg = error.message;
+                if (error.code === 'auth/email-already-in-use') msg = "Email sudah terdaftar!";
+                if (error.code === 'auth/invalid-email') msg = "Format email salah!";
+                Swal.fire('Gagal Daftar', msg, 'error');
+            });
+    }
+
+    function handleEmailLogin() {
+        const cred = getAuthInput();
+        if (!cred) return;
+
+        Swal.fire({ title: 'Masuk...', didOpen: () => Swal.showLoading() });
+
+        auth.signInWithEmailAndPassword(cred.email, cred.pass)
+            .then((userCredential) => {
+                Swal.fire({
+                    icon: 'success', 
+                    title: 'Login Berhasil', 
+                    text: 'Halo, ' + (userCredential.user.displayName || 'Admin'),
+                    timer: 1500, showConfirmButton: false
+                });
+            })
+            .catch((error) => {
+                let msg = error.message;
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = "Email atau Password salah!";
+                }
+                Swal.fire('Gagal Masuk', msg, 'error');
+            });
+    }
     // Helper untuk ganti ID dan Connect
     function applyID(id) {
         APP_ID = id;
@@ -2219,4 +2311,4 @@
 </script>
 
 </body>
-                        </html>
+</html>
